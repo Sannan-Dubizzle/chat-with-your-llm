@@ -1,0 +1,208 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Enhanced Chat App Design System - Modern gradient-based design with animations */
+
+@layer base {
+  :root {
+    /* Background gradients and effects */
+    --background: 210 20% 98%;
+    --background-secondary: 210 20% 95%;
+    --background-pattern: linear-gradient(135deg, 210 25% 97% 25%, transparent 25%), 
+                         linear-gradient(225deg, 210 25% 97% 25%, transparent 25%), 
+                         linear-gradient(45deg, 210 25% 97% 25%, transparent 25%), 
+                         linear-gradient(315deg, 210 25% 97% 25%, transparent 25%);
+    --foreground: 222.2 84% 4.9%;
+
+    /* Advanced Chat specific colors - Darker theme */
+    --chat-background: linear-gradient(135deg, 210 25% 97%, 220 25% 95%);
+    --chat-user-bg: linear-gradient(135deg, 220 25% 25%, 230 30% 30%);
+    --chat-user-fg: 0 0% 95%;
+    --chat-ai-bg: 0 0% 100%;
+    --chat-ai-fg: 222.2 84% 4.9%;
+    --chat-input-bg: 0 0% 100%;
+    --chat-input-border: 210 20% 88%;
+    --chat-header-bg: rgba(255, 255, 255, 0.8);
+
+    /* Enhanced shadows and effects */
+    --message-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    --message-hover-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    --input-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --header-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    
+    /* Premium gradients - Darker */
+    --gradient-primary: linear-gradient(135deg, 220 25% 25%, 230 30% 30%);
+    --gradient-subtle: linear-gradient(180deg, hsl(210 25% 97%), hsl(220 25% 95%));
+    --gradient-glow: linear-gradient(135deg, 220 25% 25% 0%, 230 30% 30% 100%);
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 220 25% 25%;
+    --primary-foreground: 0 0% 95%;
+
+    --secondary: 210 20% 95%;
+    --secondary-foreground: 222.2 84% 4.9%;
+
+    --muted: 210 20% 95%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 100% 95%;
+    --accent-foreground: 220 25% 25%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 210 20% 88%;
+    --input: 0 0% 100%;
+    --ring: 220 25% 25%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 220 25% 35%;
+    --primary-foreground: 0 0% 95%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    
+    /* Dark mode chat colors */
+    --chat-user-bg: linear-gradient(135deg, 220 30% 35%, 230 35% 40%);
+    --chat-user-fg: 0 0% 95%;
+    
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 220 25% 35%;
+    --sidebar-primary-foreground: 0 0% 95%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter antialiased;
+  }
+}
+
+/* Enhanced animations and utilities */
+@layer utilities {
+  .animate-message-enter {
+    animation: messageEnter 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  .animate-bounce-gentle {
+    animation: bounceGentle 1.5s infinite;
+  }
+  
+  .animate-typing {
+    animation: typing 1.4s infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  .glass-effect {
+    @apply backdrop-blur-md bg-white/80 border border-white/20;
+  }
+  
+  .message-shadow {
+    box-shadow: var(--message-shadow);
+  }
+  
+  .message-hover-shadow {
+    box-shadow: var(--message-hover-shadow);
+  }
+  
+  .input-shadow {
+    box-shadow: var(--input-shadow);
+  }
+}
+
+@keyframes messageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bounceGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+  }
+}
