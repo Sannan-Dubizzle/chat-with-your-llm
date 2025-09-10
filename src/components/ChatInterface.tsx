@@ -28,8 +28,14 @@ export const ChatInterface = () => {
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const activeRequestControllerRef = useRef<AbortController | null>(null);
+  const latestMessagesRef = useRef<ChatMessage[]>([]);
 
   const messages = currentChat?.messages || [];
+
+  useEffect(() => {
+    latestMessagesRef.current = messages;
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -83,41 +89,101 @@ export const ChatInterface = () => {
     updateCurrentChat(newMessages);
     setIsLoading(true);
 
-    // Simulate API call to your LLM
-    setTimeout(() => {
-      const aiMessage: ChatMessage = {
+    // Abort any previous in-flight request
+    if (activeRequestControllerRef.current) {
+      activeRequestControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    activeRequestControllerRef.current = controller;
+
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+      const normalizedBase = baseUrl && !/^https?:\/\//i.test(baseUrl) ? `http://${baseUrl}` : baseUrl;
+      const url = new URL("/chat", normalizedBase || window.location.origin);
+      url.search = new URLSearchParams({
+        thread_id: currentChatId || "",
+        question: content,
+      }).toString();
+
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          Accept: "application/x-ndjson, text/event-stream;q=0.9, application/json;q=0.8",
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const textDecoder = new TextDecoder();
+      let bufferedText = "";
+
+      const applyChunk = (chunkText: string) => {
+        // Expect NDJSON lines, each with a JSON object having a `message` field
+        const lines = chunkText.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line) continue;
+          try {
+            const parsed = JSON.parse(line);
+            const delta: string = parsed?.message ?? "";
+            if (!delta) continue;
+            const updated = [...(latestMessagesRef.current || [])];
+            // Append a new assistant message card for each streamed line
+            updated.push({ id: Date.now() + "-ai", content: delta, role: "assistant", timestamp: new Date(), isNew: true });
+            latestMessagesRef.current = updated;
+            updateCurrentChat(updated);
+          } catch (_e) {
+            // Ignore partial JSON; will be handled when buffer completes a line
+          }
+        }
+      };
+
+      // Read the stream
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunkText = textDecoder.decode(value, { stream: true });
+        bufferedText += chunkText;
+        const lastNewline = bufferedText.lastIndexOf("\n");
+        if (lastNewline !== -1) {
+          const complete = bufferedText.slice(0, lastNewline);
+          const remainder = bufferedText.slice(lastNewline + 1);
+          applyChunk(complete);
+          bufferedText = remainder;
+        }
+      }
+
+      // Flush any remaining buffered line if it's valid JSON
+      if (bufferedText.trim().length > 0) {
+        try {
+          applyChunk(bufferedText);
+        } catch (_e) {
+          // ignore trailing partial
+        }
+      }
+    } catch (error: unknown) {
+      console.error(error);
+      const fallback = [...(latestMessagesRef.current || newMessages)];
+      fallback.push({
         id: Date.now() + "-ai",
-        content: `I'm a demo response that shows rich content support!
-
-Here's a sample data table:
-
-| Metric | Value | Change |
-|--------|-------|---------|
-| Revenue | $45,230 | +12.5% |
-| Users | 1,234 | +8.3% |
-| Conversion | 3.2% | +0.5% |
-
-I can also show code examples:
-
-\`\`\`javascript
-function connectLLM(apiKey) {
-  return fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Authorization': \`Bearer \${apiKey}\` },
-    body: JSON.stringify({ message: 'Hello!' })
-  });
-}
-\`\`\`
-
-Connect me to your LLM to get real responses with tables and formatted content!`,
+        content: "Sorry, I couldn't reach the server. Please try again.",
         role: "assistant",
         timestamp: new Date(),
         isNew: true,
-      };
-      const finalMessages = [...newMessages, aiMessage];
-      updateCurrentChat(finalMessages);
+      });
+      latestMessagesRef.current = fallback;
+      updateCurrentChat(fallback);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+      if (activeRequestControllerRef.current === controller) {
+        activeRequestControllerRef.current = null;
+      }
+    }
   };
 
   return (
