@@ -1,8 +1,6 @@
 import {
   Sidebar,
   SidebarContent,
-  SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { ChatHistory } from "./ChatHistory";
 import { UserProfile } from "./UserProfile";
@@ -11,7 +9,7 @@ import { ChatSession } from "@/hooks/useChatHistory";
 interface AppSidebarProps {
   chatSessions: ChatSession[];
   currentChatId: string;
-  onNewChat: () => void;
+  onRefreshContext: () => void;
   onSwitchChat: (chatId: string) => void;
   onDeleteChat: (chatId: string) => void;
 }
@@ -19,26 +17,15 @@ interface AppSidebarProps {
 export function AppSidebar({
   chatSessions,
   currentChatId,
-  onNewChat,
+  onRefreshContext,
   onSwitchChat,
   onDeleteChat,
 }: AppSidebarProps) {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
-
   return (
     <Sidebar
-      className={`border-r border-sidebar-border bg-sidebar ${
-        collapsed ? "w-14" : "w-64"
-      }`}
+      collapsible="none"
+      className="border-r border-sidebar-border bg-sidebar w-64"
     >
-      {/* Trigger inside sidebar for collapsed state */}
-      {collapsed && (
-        <div className="p-2">
-          <SidebarTrigger className="w-full" />
-        </div>
-      )}
-
       <SidebarContent>
         <div className="flex flex-col h-full">
           {/* Chat History */}
@@ -46,15 +33,14 @@ export function AppSidebar({
             <ChatHistory
               chatSessions={chatSessions}
               currentChatId={currentChatId}
-              onNewChat={onNewChat}
+              onRefreshContext={onRefreshContext}
               onSwitchChat={onSwitchChat}
               onDeleteChat={onDeleteChat}
-              collapsed={collapsed}
             />
           </div>
 
           {/* User Profile */}
-          <UserProfile collapsed={collapsed} />
+          <UserProfile />
         </div>
       </SidebarContent>
     </Sidebar>

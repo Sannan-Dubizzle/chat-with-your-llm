@@ -1,7 +1,7 @@
 import { useState, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Paperclip } from "lucide-react";
+import { Send } from "lucide-react";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -36,19 +36,9 @@ export const ChatInput = ({ onSendMessage, disabled }: ChatInputProps) => {
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
-              className="min-h-[52px] max-h-32 resize-none bg-chat-input border-chat-input-border/60 focus:border-primary/40 focus:ring-2 focus:ring-primary/20 rounded-xl pr-12 input-shadow transition-all duration-200 font-medium placeholder:text-muted-foreground/60"
+              className="min-h-[52px] max-h-32 resize-none bg-chat-input border-chat-input-border/60 focus:border-primary/40 focus:ring-2 focus:ring-primary/20 rounded-xl input-shadow transition-all duration-200 font-medium placeholder:text-muted-foreground/60"
               disabled={disabled}
             />
-            {/* Attachment Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-2 bottom-2 h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors"
-              disabled={disabled}
-            >
-              <Paperclip className="h-4 w-4" />
-              <span className="sr-only">Attach file</span>
-            </Button>
           </div>
           
           {/* Send Button */}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { ChatMessage } from "@/components/ChatInterface";
 
 export interface ChatSession {
@@ -10,9 +10,12 @@ export interface ChatSession {
 }
 
 export const useChatHistory = () => {
+  // Generate timestamp-based ID for the default chat (only once on mount)
+  const defaultChatId = useMemo(() => Date.now().toString(), []);
+  
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([
     {
-      id: "default",
+      id: defaultChatId,
       title: "Welcome Chat",
       messages: [
         {
@@ -28,7 +31,7 @@ export const useChatHistory = () => {
     },
   ]);
   
-  const [currentChatId, setCurrentChatId] = useState<string>("default");
+  const [currentChatId, setCurrentChatId] = useState<string>(defaultChatId);
 
   const currentChat = chatSessions.find(chat => chat.id === currentChatId);
 
@@ -94,6 +97,31 @@ export const useChatHistory = () => {
     });
   }, [currentChatId]);
 
+  const refreshContext = useCallback(() => {
+    const newChatId = Date.now().toString();
+    setChatSessions(prev => prev.map(chat => {
+      if (chat.id === currentChatId) {
+        return {
+          ...chat,
+          id: newChatId,
+          messages: [
+            {
+              id: Date.now() + "-welcome",
+              content: "Hello! I'm your AI assistant. How can I help you today?",
+              role: "assistant",
+              timestamp: new Date(),
+              isNew: false,
+            },
+          ],
+          title: "Welcome Chat",
+          updatedAt: new Date(),
+        };
+      }
+      return chat;
+    }));
+    setCurrentChatId(newChatId);
+  }, [currentChatId]);
+
   return {
     chatSessions,
     currentChat,
@@ -102,5 +130,6 @@ export const useChatHistory = () => {
     updateCurrentChat,
     switchToChat,
     deleteChat,
+    refreshContext,
   };
 };

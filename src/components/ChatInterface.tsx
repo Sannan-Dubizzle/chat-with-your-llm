@@ -18,18 +18,20 @@ export const ChatInterface = () => {
     chatSessions,
     currentChat,
     currentChatId,
-    createNewChat,
     updateCurrentChat,
     switchToChat,
     deleteChat,
+    refreshContext,
   } = useChatHistory();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [streamedText, setStreamedText] = useState("");
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const activeRequestControllerRef = useRef<AbortController | null>(null);
   const latestMessagesRef = useRef<ChatMessage[]>([]);
+  const previousCumulativeRef = useRef<string>("");
 
   const messages = currentChat?.messages || [];
 
@@ -62,6 +64,20 @@ export const ChatInterface = () => {
     }
   }, [messages, shouldAutoScroll]);
 
+  // Also auto-scroll while streaming text updates
+  useEffect(() => {
+    if (shouldAutoScroll && streamedText) {
+      scrollToBottom();
+    }
+  }, [streamedText, shouldAutoScroll]);
+
+  // Ensure thinking bubble starts empty on a new request
+  useEffect(() => {
+    if (isLoading) {
+      setStreamedText("");
+    }
+  }, [isLoading]);
+
   // Mark messages as not new after animation
   useEffect(() => {
     if (messages.some(msg => msg.isNew)) {
@@ -76,6 +92,11 @@ export const ChatInterface = () => {
   const handleSendMessage = async (content: string) => {
     // Force auto-scroll when user sends a message
     setShouldAutoScroll(true);
+    // Reset bubble immediately for this request (do not reset baseline here)
+    setStreamedText("");
+    // Reset thinking bubble and cumulative tracker for new request
+    setStreamedText("");
+    previousCumulativeRef.current = "";
     
     const userMessage: ChatMessage = {
       id: Date.now() + "-user",
@@ -98,6 +119,10 @@ export const ChatInterface = () => {
     activeRequestControllerRef.current = controller;
 
     try {
+      // Initialize baseline to the last assistant message OR to the first incoming chunk
+      const lastAssistant = [...(latestMessagesRef.current || [])].reverse().find(m => m.role === "assistant");
+      previousCumulativeRef.current = lastAssistant?.content || previousCumulativeRef.current || "";
+
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
       const normalizedBase = baseUrl && !/^https?:\/\//i.test(baseUrl) ? `http://${baseUrl}` : baseUrl;
       const url = new URL("/chat", normalizedBase || window.location.origin);
@@ -121,6 +146,7 @@ export const ChatInterface = () => {
       const reader = response.body.getReader();
       const textDecoder = new TextDecoder();
       let bufferedText = "";
+      let latestChunk = "";
 
       const applyChunk = (chunkText: string) => {
         // Expect NDJSON lines, each with a JSON object having a `message` field
@@ -130,13 +156,30 @@ export const ChatInterface = () => {
           if (!line) continue;
           try {
             const parsed = JSON.parse(line);
-            const delta: string = parsed?.message ?? "";
-            if (!delta) continue;
-            const updated = [...(latestMessagesRef.current || [])];
-            // Append a new assistant message card for each streamed line
-            updated.push({ id: Date.now() + "-ai", content: delta, role: "assistant", timestamp: new Date(), isNew: true });
-            latestMessagesRef.current = updated;
-            updateCurrentChat(updated);
+            const incoming: string = parsed?.message ?? "";
+            if (!incoming) continue;
+            // Compute only the new part when backend sends cumulative text.
+            // Be robust if the backend prepends the previous content verbatim or with minor differences.
+            let prev = previousCumulativeRef.current || "";
+            if (!prev && latestMessagesRef.current && latestMessagesRef.current.length > 0) {
+              const lastAssistant = [...latestMessagesRef.current].reverse().find(m => m.role === "assistant");
+              prev = lastAssistant?.content || "";
+              previousCumulativeRef.current = prev;
+            }
+            let toShow = incoming;
+            if (prev) {
+              if (incoming.startsWith(prev)) {
+                toShow = incoming.slice(prev.length);
+              } else {
+                const idx = incoming.indexOf(prev);
+                if (idx >= 0) {
+                  toShow = incoming.slice(idx + prev.length);
+                }
+              }
+            }
+            previousCumulativeRef.current = incoming;
+            latestChunk = toShow || incoming;
+            setStreamedText(toShow);
           } catch (_e) {
             // Ignore partial JSON; will be handled when buffer completes a line
           }
@@ -166,20 +209,46 @@ export const ChatInterface = () => {
           // ignore trailing partial
         }
       }
-    } catch (error: unknown) {
-      console.error(error);
-      const fallback = [...(latestMessagesRef.current || newMessages)];
-      fallback.push({
+      // Finalize: only include the latest chunk in the final message card
+      const finalText = latestChunk || "";
+      const finalAssistant: ChatMessage = {
         id: Date.now() + "-ai",
-        content: "Sorry, I couldn't reach the server. Please try again.",
+        content: finalText,
         role: "assistant",
         timestamp: new Date(),
         isNew: true,
-      });
+      };
+      // Clear typing bubble before rendering the final message
+      setStreamedText("");
+      setIsLoading(false);
+      previousCumulativeRef.current = "";
+
+      const finalMessages: ChatMessage[] = [
+        ...((latestMessagesRef.current || newMessages) as ChatMessage[]),
+        finalAssistant,
+      ];
+      latestMessagesRef.current = finalMessages;
+      updateCurrentChat(finalMessages);
+    } catch (error: unknown) {
+      // Clear typing bubble on error as well
+      setStreamedText("");
+      setIsLoading(false);
+      previousCumulativeRef.current = "";
+
+      const fallback: ChatMessage[] = [
+        ...((latestMessagesRef.current || newMessages) as ChatMessage[]),
+        {
+          id: Date.now() + "-ai",
+          content: "Sorry, I couldn't reach the server. Please try again.",
+          role: "assistant",
+          timestamp: new Date(),
+          isNew: true,
+        },
+      ];
       latestMessagesRef.current = fallback;
       updateCurrentChat(fallback);
     } finally {
-      setIsLoading(false);
+      // no-op: already cleared isLoading/streamedText above on success/error
       if (activeRequestControllerRef.current === controller) {
         activeRequestControllerRef.current = null;
       }
@@ -192,7 +261,7 @@ export const ChatInterface = () => {
       <AppSidebar
         chatSessions={chatSessions}
         currentChatId={currentChatId}
-        onNewChat={createNewChat}
+        onRefreshContext={refreshContext}
         onSwitchChat={switchToChat}
         onDeleteChat={deleteChat}
       />
@@ -239,18 +308,18 @@ export const ChatInterface = () => {
                   ))}
                   {isLoading && (
                     <div className="flex justify-start animate-fade-in">
-                      <div className="flex max-w-sm space-x-4">
+                      <div className="flex max-w-xl space-x-4">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-chat-ai border border-border/50 shadow-sm">
                           <Sparkles className="h-4 w-4 text-chat-ai-foreground" />
                         </div>
                         <div className="rounded-2xl bg-chat-ai px-6 py-4 message-shadow border border-border/50">
-                          <div className="flex items-center space-x-2">
-                            <div className="flex space-x-1">
+                          <div className="flex items-start space-x-3">
+                            <div className="flex pt-1 space-x-1 min-w-[20px]">
                               <div className="h-2 w-2 rounded-full bg-muted-foreground animate-typing [animation-delay:-0.3s]"></div>
                               <div className="h-2 w-2 rounded-full bg-muted-foreground animate-typing [animation-delay:-0.15s]"></div>
                               <div className="h-2 w-2 rounded-full bg-muted-foreground animate-typing"></div>
                             </div>
-                            <span className="text-xs text-muted-foreground">AI is thinking...</span>
+                            <div className="whitespace-pre-wrap break-words text-sm text-foreground">{streamedText}</div>
                           </div>
                         </div>
                       </div>

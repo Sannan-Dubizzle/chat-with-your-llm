@@ -1,63 +1,47 @@
-import { User, Settings, LogOut, Crown } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { User } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface UserProfileProps {
-  collapsed?: boolean;
-}
-
-export const UserProfile = ({ collapsed }: UserProfileProps) => {
-  const userName = "John Doe"; // Replace with actual user data
-  const userEmail = "john@example.com"; // Replace with actual user data
+export const UserProfile = () => {
+  const { data, isLoading } = useCurrentUser();
+  
+  const userName = data?.admin?.name || "User";
+  const userEmail = data?.admin?.email || "";
+  const profileImage = data?.admin?.profile_image;
 
   return (
     <div className="border-t border-sidebar-border bg-sidebar/50 p-3">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className={`w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${
-              collapsed ? "px-2" : "px-3"
-            }`}
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shrink-0">
-              <User className="h-4 w-4" />
+      <div className="flex items-center px-3">
+        {isLoading ? (
+          <>
+            <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+            <div className="ml-3 flex-1 text-left space-y-1">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-32" />
             </div>
-            {!collapsed && (
-              <div className="ml-3 flex-1 text-left">
-                <div className="text-sm font-medium truncate">{userName}</div>
-                <div className="text-xs text-sidebar-foreground/70 truncate">{userEmail}</div>
+          </>
+        ) : (
+          <>
+            {profileImage ? (
+              <img
+                src={profileImage}
+                alt={userName}
+                className="h-8 w-8 rounded-full shrink-0 object-cover"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shrink-0">
+                <User className="h-4 w-4" />
               </div>
             )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" className="w-56">
-          <div className="px-2 py-1.5">
-            <div className="text-sm font-medium">{userName}</div>
-            <div className="text-xs text-muted-foreground">{userEmail}</div>
-          </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <Crown className="mr-2 h-4 w-4" />
-            Upgrade to Pro
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive focus:text-destructive">
-            <LogOut className="mr-2 h-4 w-4" />
-            Log out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <div className="ml-3 flex-1 text-left">
+              <div className="text-sm font-medium truncate text-sidebar-foreground">{userName}</div>
+              {userEmail && (
+                <div className="text-xs text-sidebar-foreground/70 truncate">{userEmail}</div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };

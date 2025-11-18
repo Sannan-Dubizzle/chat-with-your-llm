@@ -1,4 +1,4 @@
-import { MessageCircle, Plus, MoreHorizontal, Trash2 } from "lucide-react";
+import { MessageCircle, RefreshCw, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,32 +12,28 @@ import { formatDistanceToNow } from "date-fns";
 interface ChatHistoryProps {
   chatSessions: ChatSession[];
   currentChatId: string;
-  onNewChat: () => void;
+  onRefreshContext: () => void;
   onSwitchChat: (chatId: string) => void;
   onDeleteChat: (chatId: string) => void;
-  collapsed?: boolean;
 }
 
 export const ChatHistory = ({
   chatSessions,
   currentChatId,
-  onNewChat,
+  onRefreshContext,
   onSwitchChat,
   onDeleteChat,
-  collapsed,
 }: ChatHistoryProps) => {
   return (
     <div className="flex flex-col h-full">
-      {/* New Chat Button */}
+      {/* Refresh Context Button */}
       <div className="p-3 border-b border-sidebar-border">
         <Button
-          onClick={onNewChat}
-          className={`w-full justify-start bg-primary hover:bg-primary/90 text-primary-foreground ${
-            collapsed ? "px-2" : "px-3"
-          }`}
+          onClick={onRefreshContext}
+          className="w-full justify-start bg-primary hover:bg-primary/90 text-primary-foreground px-3"
         >
-          <Plus className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="ml-2">New Chat</span>}
+          <RefreshCw className="h-4 w-4 shrink-0" />
+          <span className="ml-2">Refresh Context</span>
         </Button>
       </div>
 
@@ -56,29 +52,25 @@ export const ChatHistory = ({
               <Button
                 variant="ghost"
                 onClick={() => onSwitchChat(session.id)}
-                className={`w-full justify-start text-left h-auto p-3 ${
-                  collapsed ? "px-2" : "pr-8"
-                } ${
+                className={`w-full justify-start text-left h-auto p-3 pr-8 ${
                   session.id === currentChatId
                     ? "bg-sidebar-accent hover:bg-sidebar-accent text-sidebar-accent-foreground"
                     : "hover:bg-sidebar-accent/50"
                 }`}
               >
                 <MessageCircle className="h-4 w-4 shrink-0" />
-                {!collapsed && (
-                  <div className="ml-3 flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      {session.title}
-                    </div>
-                    <div className="text-xs opacity-70 truncate">
-                      {formatDistanceToNow(session.updatedAt, { addSuffix: true })}
-                    </div>
+                <div className="ml-3 flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">
+                    {session.title}
                   </div>
-                )}
+                  <div className="text-xs opacity-70 truncate">
+                    {formatDistanceToNow(session.updatedAt, { addSuffix: true })}
+                  </div>
+                </div>
               </Button>
 
-              {/* Delete button - only show when not collapsed and on hover */}
-              {!collapsed && chatSessions.length > 1 && (
+              {/* Delete button - only show on hover */}
+              {chatSessions.length > 1 && (
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
